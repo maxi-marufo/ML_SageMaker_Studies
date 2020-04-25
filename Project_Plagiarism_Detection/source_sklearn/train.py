@@ -7,7 +7,19 @@ import pandas as pd
 from sklearn.externals import joblib
 
 ## TODO: Import any additional libraries you need to define a model
-
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import (
+    train_test_split,
+    RepeatedStratifiedKFold,
+    GridSearchCV
+)
+from sklearn.metrics import (
+    accuracy_score,
+    balanced_accuracy_score,
+    log_loss,
+    make_scorer
+)
+import numpy as np
 
 # Provided model load function
 def model_fn(model_dir):
@@ -56,12 +68,33 @@ if __name__ == '__main__':
     
 
     ## TODO: Define a model 
-    model = None
+    model = RandomForestClassifier()
     
+    params = dict(
+        n_estimators=list(range(20, 220, 20)),
+        max_depth=list(range(4, 44, 4))
+    )
+    
+    rskf = RepeatedStratifiedKFold(n_splits=5, n_repeats=3, random_state=1)
+
+    grid_rf = GridSearchCV(
+        estimator=model,
+        param_grid=params,
+        scoring={
+            'accuracy': make_scorer(accuracy_score),
+            'balanced_accuracy': make_scorer(balanced_accuracy_score),
+            'neg_log_loss': make_scorer(
+                log_loss, needs_proba=True, labels=np.unique(train_y)
+                )
+        },
+        refit='balanced_accuracy',
+        cv=rskf,
+        return_train_score=True,
+        verbose=0)
     
     ## TODO: Train the model
-    
-    
+    grid_rf.fit(train_x, train_y)
+    model = grid_rf.best_estimator_
     
     ## --- End of your code  --- ##
     
